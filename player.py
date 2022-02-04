@@ -1,4 +1,3 @@
-from typing import NamedTuple
 import logging
 from enum import Enum
 from dataclasses import dataclass
@@ -19,6 +18,7 @@ class Status(Enum):
 class NearerSong:
     url: str
     title: str
+    length: int
     thumb: str
     thumb_big: str
 
@@ -94,7 +94,7 @@ class Player:
             self.vlc_player.play_item_at_index(self.current_song_idx)
             self.status = Status.PLAYING
 
-        self.all_songs.append(NearerSong(url, video.title, video.thumb, video.bigthumbhd))
+        self.all_songs.append(NearerSong(url, video.title, video.length, video.thumb, video.bigthumbhd))
 
         logger.info(f"added '{video.title}' as song {len(self.all_songs) - 1}")
 

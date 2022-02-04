@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300&family=Roboto&display=swap" rel="stylesheet"> 
+        <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <div id="main">
+            <div id="header">
+                <h1>Nearer</h1>
+            </div>
+            <div id="content">
+                <div id="currently-playing">
+                    <img id="current-image" src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
+                    <p id="current-title">CURRENTLY PLAYING</p>
+                </div>
+                <div id="queue">
+                    <div id="submit-form">
+                        <input placeholder="youtube url">
+                        <button id="submit-btn">+</button>
+                    </div>
+                    <ul id="song-list">
+                        <li class="song">
+                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
+                            <p class="song-title">SONG TITLE</p>
+                            <p class="song-length">00:00</p>
+                        </li>
+                        <li class="song">
+                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
+                            <p class="song-title">LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG</p>
+                            <p class="song-length">00:00</p>
+                        </li>
+                        <li class="song">
+                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
+                            <p class="song-title">SONG TITLE</p>
+                            <p class="song-length">00:00</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </body>
+    <style>
+        body {
+            background: black;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #main {
+            max-width: 12in;
+            margin: 0 auto;
+        }
+
+        #header {
+            width: 100%;
+            display: flex;
+            height: 2in;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-family: 'Oswald', sans-serif;
+        }
+
+        #content {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        #content > div {
+            padding: 3vw;
+            width: 50%;
+            min-width: 4in;
+            box-sizing: border-box;
+        }
+
+        #currently-playing {
+            text-align: center;
+        }
+
+        #current-image {
+            max-width: 100%;
+        }
+
+        #queue {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #submit-form > * {
+            margin: 0px 5px;
+        }
+
+        #submit-form > input {
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 5px;
+            padding: 5px;
+            box-sizing: border-box;
+            height: 2em;
+            color: white;
+        }
+
+        ::placeholder {
+            color: #aaa;
+        }
+
+        #submit-btn {
+            height: 2em;
+            width: 2em;
+            padding: 0;
+            box-sizing: border-box;
+            background: #444;
+            border: 1px solid #666;
+            border-radius: 5px;
+            color: #aaa;
+        }
+
+        #submit-btn:hover { background: #4c4c4c; }
+        #submit-btn:active { background: #3a3a3a; }
+
+        #song-list {
+            width: 100%;
+            list-style: none;
+            padding: 0;
+        }
+
+        .song {
+            display: flex;
+            background: #111;
+            margin: 10px;
+            align-items: center;
+            border-radius: 5px;
+        }
+        
+        .song * {
+            box-sizing: border-box;
+            margin: 10px;
+        }
+
+        .song :first-child {
+            margin-left: 20px
+        }
+
+        .song :last-child {
+            margin-right: 20px
+        }
+
+        .song img {
+            width: 20%;
+        }
+
+        .song-title {
+            width: 60%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .song-length {
+            width: 20%;
+            text-align: right;
+        }
+    </style>
+    <script>
+        const sio = io("http://localhost:5000");
+
+        sio.on("init", (data) => {
+            console.log(data);
+        });
+    </script>
+</html>
