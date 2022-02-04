@@ -1,5 +1,7 @@
 from typing import NamedTuple
 import logging
+from enum import Enum
+from dataclasses import dataclass
 
 import pafy
 import vlc
@@ -8,7 +10,13 @@ import vlc
 logger = logging.getLogger(__name__)
 
 
-class NearerSong(NamedTuple):
+class Status(Enum):
+    STOPPED = "stopped"
+    PLAYING = "playing"
+    PAUSED = "paused"
+
+@dataclass
+class NearerSong:
     url: str
     title: str
     thumb: str
@@ -20,6 +28,8 @@ class Player:
         """
         song_end: function to call after each song finishes
         """
+
+        self.status = Status.STOPPED
 
         self.song_end_callback = song_end
 
@@ -41,6 +51,9 @@ class Player:
         logger.info("toggling pause")
         self.vlc_player.pause()
 
+        if self.status == Status.PLAYING: self.status = Status.PAUSED
+        if self.status == Status.PAUSED: self.status = Status.PLAYING
+
     def next(self):
         """
         Skip the current song.
@@ -58,6 +71,7 @@ class Player:
             if self.queue_exhausted():
                 logger.info("last song was skipped, stopping player")
                 self.vlc_player.stop()
+                self.status == Status.STOPPED
             else:
                 self.vlc_player.next()
 
@@ -78,6 +92,7 @@ class Player:
         if self.queue_exhausted():
             # Use play_item_at_index() because if the player had stopped calling play() would make it start from the beginning.
             self.vlc_player.play_item_at_index(self.current_song_idx)
+            self.status = Status.PLAYING
 
         self.all_songs.append(NearerSong(url, video.title, video.thumb, video.bigthumbhd))
 
@@ -92,6 +107,9 @@ class Player:
         logger.info(f"song {self.current_song_idx} of {len(self.all_songs)} finished")
         self.current_song_idx += 1
         self.song_end_callback()
+
+        if self.queue_exhausted():
+            self.status == Status.STOPPED
 
     def queue_exhausted(self):
         """

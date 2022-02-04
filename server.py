@@ -1,9 +1,23 @@
+from locale import currency
 import logging
+from dataclasses import dataclass
 
 import socketio
 import eventlet
+from dataclasses_json import DataClassJsonMixin
 
 import player
+
+
+@dataclass
+class InitMessage(DataClassJsonMixin):
+    """
+    Server -> client message sent upon connection with all information needed by the client.
+    """
+
+    status: player.Status
+    songs: list[player.NearerSong]
+    current_song_idx: int
 
 
 logging.basicConfig(level=logging.INFO)
@@ -16,13 +30,16 @@ def song_ended():
 
 p = player.Player(song_ended)
 
-sio = socketio.Server(logger=logger)
+sio = socketio.Server(logger=logger, cors_allowed_origins='*')
 app = socketio.WSGIApp(sio)
 
 
 @sio.event
 def connect(sid, environ, auth):
     print(f"connected to {sid}")
+
+    msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx).to_json()
+    sio.emit("init", msg_json)
 
 @sio.event
 def disconnect(sid):
