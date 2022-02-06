@@ -3,34 +3,53 @@ import logging
 from dataclasses import dataclass
 
 import socketio
-import eventlet
+from gevent import pywsgi
+from geventwebsocket.handler import WebSocketHandler
+
 from dataclasses_json import DataClassJsonMixin
 
 import player
-
-
-@dataclass
-class InitMessage(DataClassJsonMixin):
-    """
-    Server -> client message sent upon connection with all information needed by the client.
-    """
-
-    status: player.Status
-    songs: list[player.NearerSong]
-    current_song_idx: int
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def song_ended():
-    pass
+@dataclass
+class InitMessage(DataClassJsonMixin):
+    status: player.Status
+    songs: list[player.NearerSong]
+    current_song_idx: int
+
+@dataclass
+class AddedMessage(DataClassJsonMixin):
+    status: player.Status
+    song: player.NearerSong
+    current_song_idx: int
+
+@dataclass
+class SongEndedMessage(DataClassJsonMixin):
+    status: player.Status
+    current_song_idx: int
+
+@dataclass
+class StatusUpdateMessage(DataClassJsonMixin):
+    status: player.Status
 
 
-p = player.Player(song_ended)
+def emit_song_ended():
+    msg_json = SongEndedMessage(p.status, p.current_song_idx).to_json()
+    sio.emit("song_ended", msg_json)
 
-sio = socketio.Server(logger=logger, cors_allowed_origins='*')
+def emit_status():
+    msg_json = StatusUpdateMessage(p.status).to_json()
+    sio.emit("status", msg_json)
+
+
+p = player.Player(emit_song_ended)
+
+# sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='https://blacker.caltech.edu')
+sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='*')
 app = socketio.WSGIApp(sio)
 
 
@@ -47,24 +66,25 @@ def disconnect(sid):
 
 @sio.event
 def pause(sid, data=None):
-    p.toggle_pause() 
+    p.toggle_pause()
+    emit_status()
 
 @sio.event
 def next(sid, data=None):
     p.next()
+    emit_song_ended()
 
 @sio.event
 def add(sid, data):
-    p.add_song(data)
-
-@sio.event
-def info(sid):
-    p.print_info()
-
-@sio.event
-def queue(sid):
-    p.print_queue()
+    try:
+        p.add_song(data)
+    except ValueError:
+        #TODO emit error message
+        pass
+    else:
+        msg_json = AddedMessage(p.status, p.all_songs[0], p.current_song_idx).to_json()
+        sio.emit("added", msg_json)
 
 
 if __name__ == "__main__":
-    eventlet.wsgi.server(eventlet.listen(('', 5000)), app, log=logger)
+    pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler).serve_forever()
