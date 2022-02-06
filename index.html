@@ -6,82 +6,82 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300&family=Roboto&display=swap" rel="stylesheet"> 
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
         <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
+        <title>Nearer</title>
     </head>
     <body>
-        <div id="main">
-            <div id="header">
-                <h1>Nearer</h1>
-            </div>
-            <div id="content">
-                <div id="currently-playing">
-                    <img id="current-image" src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
-                    <p id="current-title">CURRENTLY PLAYING</p>
-                </div>
-                <div id="queue">
-                    <div id="submit-form">
-                        <input placeholder="youtube url">
-                        <button id="submit-btn">+</button>
-                    </div>
-                    <ul id="song-list">
-                        <li class="song">
-                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
-                            <p class="song-title">SONG TITLE</p>
-                            <p class="song-length">00:00</p>
-                        </li>
-                        <li class="song">
-                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
-                            <p class="song-title">LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG LONG</p>
-                            <p class="song-length">00:00</p>
-                        </li>
-                        <li class="song">
-                            <img src="https://i.ytimg.com/vi/eHAsuPVBwYM/hq720.jpg" />
-                            <p class="song-title">SONG TITLE</p>
-                            <p class="song-length">00:00</p>
-                        </li>
-                    </ul>
+        <header>
+            <h1>Nearer</h1>
+            <p id="subtitle"></p>
+            <!-- <p id="username"><?php echo $_SERVER['PHP_AUTH_USER']; ?></p> -->
+        </header>
+        <main>
+            <p id="connecting">
+                Connecting...
+            </p>
+            <div id="currently-playing">
+                <img id="current-image" />
+                <p id="current-title"></p>
+                <div id="controls">
+                    <button id="pause-btn">PAUSE</button>
+                    <button id="skip-btn">SKIP</button>
                 </div>
             </div>
-        </div>
+            <div id="queue">
+                <form id="submit-form" autocomplete="off">
+                    <input placeholder="youtube url" id="url-input" value="">
+                    <button form="submit-form" id="submit-btn">+</button>
+                </form>
+                <ul id="song-list"></ul>
+            </div>
+        </main>
     </body>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             background: black;
             color: white;
             font-family: 'Roboto', sans-serif;
         }
 
-        #main {
-            max-width: 12in;
-            margin: 0 auto;
+        header {
+            text-align: center;
         }
 
-        #header {
-            width: 100%;
-            display: flex;
-            height: 2in;
-            justify-content: center;
-            align-items: center;
-            font-size: 2.5em;
+        header h1 {
+            font-size: 4em;
             font-family: 'Oswald', sans-serif;
+            margin-bottom: 0;
         }
 
-        #content {
-            width: 100%;
+        #subtitle {
+            letter-spacing: 0.15em;
+            color: #aaa;
+        }
+
+        #username {
+            display: none;
+        }
+
+        main {
+            margin: 0 auto;
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
         }
         
-        #content > div {
-            padding: 3vw;
-            width: 50%;
-            min-width: 4in;
-            box-sizing: border-box;
+        main > div {
+            margin: 3vw;
+            max-width: 5in;
+            flex-grow: 1;
         }
 
         #currently-playing {
             text-align: center;
+            display: none;
         }
 
         #current-image {
@@ -94,11 +94,13 @@
             align-items: center;
         }
 
-        #submit-form > * {
-            margin: 0px 5px;
+        #submit-form {
+            display: flex;
+            width: 100%;
+            align-items: center;
         }
 
-        #submit-form > input {
+        #url-input {
             background: #333;
             border: 1px solid #666;
             border-radius: 5px;
@@ -106,25 +108,30 @@
             box-sizing: border-box;
             height: 2em;
             color: white;
+            flex-grow: 1;
+            margin-left: 10px;
         }
 
         ::placeholder {
             color: #aaa;
         }
 
-        #submit-btn {
+        button {
             height: 2em;
-            width: 2em;
-            padding: 0;
-            box-sizing: border-box;
             background: #444;
             border: 1px solid #666;
             border-radius: 5px;
-            color: #aaa;
+            color: #ccc;
+            margin: 10px;
         }
+        button:hover { background: #4c4c4c; }
+        button:active { background: #3a3a3a; }
 
-        #submit-btn:hover { background: #4c4c4c; }
-        #submit-btn:active { background: #3a3a3a; }
+        #submit-btn {
+            width: 2em;
+            flex-grow: 0;
+            padding: 0;
+        }
 
         #song-list {
             width: 100%;
@@ -134,46 +141,214 @@
 
         .song {
             display: flex;
-            background: #111;
+            background: #181818;
             margin: 10px;
             align-items: center;
             border-radius: 5px;
         }
-        
-        .song * {
-            box-sizing: border-box;
-            margin: 10px;
+
+        #song-list a {
+            color: inherit;
+            text-decoration: none;
         }
 
-        .song :first-child {
-            margin-left: 20px
+        .song.played { opacity: 40%; }
+        .song.current {
+            background: #ccc;
+            color: black;
         }
 
-        .song :last-child {
-            margin-right: 20px
-        }
+        .song > * { margin: 10px; }
+        .song > :first-child { margin-left: 20px }
+        .song > :last-child { margin-right: 20px }
 
-        .song img {
-            width: 20%;
+        .song img { width: 15%; flex-shrink: 0; }
+
+        .song-info {
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
         }
+        .song-info > p { margin: 2px; }
 
         .song-title {
-            width: 60%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
+        .song-user {
+            font-size: 0.75em;
+            opacity: 70%;
+        }
+
         .song-length {
-            width: 20%;
             text-align: right;
+        }
+
+        @media screen and (max-width: 10in) {
+            header h1 {
+                font-size: 2.5em;
+            }
+            main {
+                flex-direction: column;
+                align-items: center;
+            }
+            main > div {
+                width: 90%;
+            }
+            #current-image {
+                max-height: 15vh;
+            }
+
+            .song > * { margin: 5px; }
+            .song > :first-child { margin-left: 10px }
+            .song > :last-child { margin-right: 10px }
         }
     </style>
     <script>
+        const MAX_HIST = 7;
+
+        const subtitles = [
+            "DON'T PLAY THE RIDE",
+            "BEATS RICKETTS MUSIC",
+            "THE DAY THE MUSIC DIED",
+            "NEW AND IMPROVED!",
+            "MEMERS WILL BE SHOT",
+            "SOUNDS LIKE THE DAY I WAS BORN!",
+            "IT'S PIZZA TIME!",
+            "SOUNDS TO CURE YOUR DEPRESSION"
+        ];
+
+        $("#subtitle").text(subtitles[Math.floor(Math.random()*subtitles.length)]);
+
+        $("#currently-playing").hide();
+        $("#queue").hide();
+
+        function add_song(song) {
+            var $song = $("<li></li>").addClass("song");
+
+            $song.append("<img src='" + song.thumb_big + "'>");
+
+            var $song_info = $("<div></div>").addClass("song-info");
+            $song_info.append("<p class='song-title'>" + song.title + "</p>");
+            $song_info.append("<p class='song-user'>" + song.user + "</p>");
+            $song.append($song_info);
+
+            var minutes = Math.floor(song.length / 60);
+            var seconds = song.length % 60;
+            if (seconds < 10) { seconds = "0" + seconds; }
+            $song.append("<p class='song-length'>" + minutes + ":" + seconds + "</p>");
+
+            $song_link = $("<a href='" + song.url + "' target='_blank'></a>").append($song);
+            $("#song-list").prepend($song_link);
+        }
+
+        function update_current_song_idx(current_idx) {
+            var songElems = $(".song");
+            songElems.removeClass();
+            songElems.addClass("song");
+
+            for (var i = 0; i < songElems.length; i++) {
+                if (i < current_idx) {
+                    $(songElems[i]).addClass("queued");
+                } else if (i === current_idx) {
+                    $(songElems[i]).addClass("current");
+
+                    const img_src = $(songElems[i]).find("img").attr("src");
+                    const title = $(songElems[i]).find(".song-title").text();
+                    $("#current-image").attr("src", img_src);
+                    $("#current-title").text(title);
+                } else {
+                    $(songElems[i]).addClass("played");
+                }
+            }
+        }
+
+        function update_status(status) {
+            if (status === "stopped") {
+                $("#currently-playing").hide();
+            } else if (status === "playing") {
+                $("#currently-playing").show();
+                $("#pause-btn").text("PAUSE");
+            } else if (status === "paused") {
+                $("#currently-playing").show();
+                $("#pause-btn").text("PLAY");
+            }
+        }
+
+        $("#pause-btn").click(() => {
+            sio.emit("pause");
+        });
+
+        $("#skip-btn").click(() => {
+            sio.emit("next");
+        });
+
+        $("#submit-form").submit((e) => {
+            e.preventDefault();
+            const url = $("#url-input").val();
+            sio.emit("add", url);
+
+            $("#url-input").val("");
+        });
+
         const sio = io("http://localhost:5000");
 
         sio.on("init", (data) => {
+            data = JSON.parse(data);
+            console.log("init");
             console.log(data);
+
+            $("#song-list").empty();
+            data.songs.reverse().forEach((song) => {
+                add_song(song);
+            });
+
+            update_current_song_idx(data.current_song_idx);
+            update_status(data.status);
+
+            $("#queue").show();
+            $("#connecting").hide();
         });
+
+        sio.on("disconnect", () => {
+            $("#currently-playing").hide();
+            $("#queue").hide();
+            $("#connecting").show();
+        })
+
+        sio.on("added", (data) => {
+            data = JSON.parse(data);
+            console.log("added");
+            console.log(data);
+
+            add_song(data.song);
+            update_current_song_idx(data.current_song_idx);
+            update_status(data.status);
+        });
+
+        sio.on("song_ended", (data) => {
+            data = JSON.parse(data);
+            console.log("song ended");
+            console.log(data);
+
+            update_current_song_idx(data.current_song_idx);
+            update_status(data.status);
+
+            // Limit number of played songs shown.
+            var played_songs = $(".song.played");
+            if (played_songs.length > MAX_HIST) {
+                played_songs.last().remove();
+            }
+        })
+
+        sio.on("status", (data) => {
+            data = JSON.parse(data);
+            console.log("status");
+            console.log(data);
+
+            update_status(data.status);
+        })
     </script>
 </html>
