@@ -1,4 +1,5 @@
 import logging
+import requests
 from enum import Enum
 from dataclasses import dataclass
 
@@ -6,7 +7,14 @@ import pafy
 import vlc
 
 
+MAX_HIST = 7
+PAFY_MAX_TRIES = 10
+
+
 logger = logging.getLogger(__name__)
+
+
+pafy.set_api_key('AIzaSyAosU-NtYX-li_SqpcsKfZ4yFoW8SC-fSU')
 
 
 class Status(Enum):
@@ -34,7 +42,7 @@ class Player:
         self.song_end_callback = song_end
 
         self.all_songs = []
-        self.current_song_idx = 0
+        self.current_song_idx = -1
 
         # Create a new VLC MediaListPlayer and MediaList.
         vlc_instance = vlc.Instance()
@@ -52,7 +60,7 @@ class Player:
         self.vlc_player.pause()
 
         if self.status == Status.PLAYING: self.status = Status.PAUSED
-        if self.status == Status.PAUSED: self.status = Status.PLAYING
+        elif self.status == Status.PAUSED: self.status = Status.PLAYING
 
     def next(self):
         """
@@ -65,13 +73,13 @@ class Player:
         if self.queue_exhausted():
             logger.info("queue is exhausted, ignoring next call")
         else:
-            logger.info(f"skipping song {self.current_song_idx} of {len(self.all_songs)}")
-            self.current_song_idx += 1
+            logger.info(f"skipping song {self.current_song_idx}")
+            self.current_song_idx -= 1
 
             if self.queue_exhausted():
                 logger.info("last song was skipped, stopping player")
                 self.vlc_player.stop()
-                self.status == Status.STOPPED
+                self.status = Status.STOPPED
             else:
                 self.vlc_player.next()
 
@@ -83,20 +91,37 @@ class Player:
         If the queue is exhausted, start playing from this song.
         """
 
-        video = pafy.new(url)
-        best_audio = video.getbestaudio()
+        # Sometimes the stream url gives a 403 error, so check for this before adding it to the queue.
+        for i in range(PAFY_MAX_TRIES):
+            try:
+                video = pafy.new(url)
+            except ValueError:
+                logger.error(f"couldn't get youtube video at {url}")
+                raise ValueError(f"couldn't get youtube video at {url}")
 
-        self.vlc_list.add_media(best_audio.url)
+            logger.info(f"trying to get stream for '{video.title}'")
+            best_audio = video.getbestaudio()
+            r = requests.get(best_audio.url, stream=True)
 
-        # Before adding to all_songs, check if the queue was exhausted. If it was, start playing this song.
-        if self.queue_exhausted():
-            # Use play_item_at_index() because if the player had stopped calling play() would make it start from the beginning.
-            self.vlc_player.play_item_at_index(self.current_song_idx)
-            self.status = Status.PLAYING
+            if r.status_code == 200:
+                self.vlc_list.add_media(best_audio.url)
 
-        self.all_songs.append(NearerSong(url, video.title, video.length, video.thumb, video.bigthumbhd))
+                # Before adding to all_songs, check if the queue was exhausted. If it was, start playing this song.
+                if self.queue_exhausted():
+                    # Use play_item_at_index() because if the player had stopped calling play() would make it start from the beginning.
+                    self.vlc_player.play_item_at_index(len(self.all_songs))
+                    self.status = Status.PLAYING
 
-        logger.info(f"added '{video.title}' as song {len(self.all_songs) - 1}")
+                # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
+                self.all_songs.insert(0, NearerSong(url, video.title, video.length, video.thumb, video.bigthumbhd))
+                self.current_song_idx += 1
+
+                logger.info(f"added '{video.title}'")
+
+                return
+
+        logger.error(f"couldn't get stream for '{video.title}'")
+        raise ValueError(f"couldn't get stream for '{video.title}'")
 
     def song_ended(self, event):
         """
@@ -105,30 +130,19 @@ class Player:
         """
 
         logger.info(f"song {self.current_song_idx} of {len(self.all_songs)} finished")
-        self.current_song_idx += 1
-        self.song_end_callback()
+        self.current_song_idx -= 1
 
         if self.queue_exhausted():
-            self.status == Status.STOPPED
+            self.status = Status.STOPPED
+
+        # Limit number of played songs stored
+        self.all_songs = self.all_songs[:self.current_song_idx + MAX_HIST + 1]
+
+        self.song_end_callback()
 
     def queue_exhausted(self):
         """
         Check if all songs in all_songs have already played
         """
 
-        return self.current_song_idx >= len(self.all_songs)
-
-    def print_info(self):
-        song = self.all_songs[self.current_song_idx]
-        print(song.title)
-        print("thumb:", song.thumb)
-        print("thumb_big:", song.thumb_big)
-        print(f"time {self.vlc_player.get_media_player().get_time()} / {self.vlc_player.get_media_player().get_length()}")
-
-    def print_queue(self):
-        print(f"current song: {self.current_song_idx} of {len(self.all_songs)}")
-        for i in range(len(self.all_songs)):
-            if i == self.current_song_idx:
-                print("-", self.all_songs[i].title)
-            else:
-                print(" ", self.all_songs[i].title)
+        return self.current_song_idx <= -1
