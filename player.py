@@ -28,11 +28,10 @@ class NearerSong:
     title: str
     length: int
     thumb: str
-    thumb_big: str
 
 
 class Player:
-    def __init__(self, song_end):
+    def __init__(self, song_end, time_changed):
         """
         song_end: function to call after each song finishes
         """
@@ -40,6 +39,7 @@ class Player:
         self.status = Status.STOPPED
 
         self.song_end_callback = song_end
+        self.time_changed_callback = time_changed
 
         self.all_songs = []
         self.current_song_idx = -1
@@ -54,6 +54,7 @@ class Player:
         # Note: libvlc is not reentrant, so self.song_ended cannot call a libvlc function directly
         player_events = self.vlc_player.get_media_player().event_manager()
         player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.song_ended)
+        player_events.event_attach(vlc.EventType.MediaPlayerTimeChanged, self.time_changed)
 
     def toggle_pause(self):
         logger.info("toggling pause")
@@ -102,6 +103,7 @@ class Player:
             logger.info(f"trying to get stream for '{video.title}'")
             best_audio = video.getbestaudio()
             r = requests.get(best_audio.url, stream=True)
+            logger.info(f"response code {r.status_code}")
 
             if r.status_code == 200:
                 self.vlc_list.add_media(best_audio.url)
@@ -113,7 +115,7 @@ class Player:
                     self.status = Status.PLAYING
 
                 # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
-                self.all_songs.insert(0, NearerSong(url, video.title, video.length, video.thumb, video.bigthumbhd))
+                self.all_songs.insert(0, NearerSong('https://youtu.be/' + video.videoid, video.title, video.length, video.bigthumbhd))
                 self.current_song_idx += 1
 
                 logger.info(f"added '{video.title}'")
@@ -129,7 +131,7 @@ class Player:
         Increment current_song_idx and call self.song_end_callback()
         """
 
-        logger.info(f"song {self.current_song_idx} of {len(self.all_songs)} finished")
+        logger.info(f"song {self.current_song_idx} ended")
         self.current_song_idx -= 1
 
         if self.queue_exhausted():
@@ -140,9 +142,16 @@ class Player:
 
         self.song_end_callback()
 
+    def time_changed(self, event):
+        self.time_changed_callback()
+
     def queue_exhausted(self):
         """
         Check if all songs in all_songs have already played
         """
 
         return self.current_song_idx <= -1
+
+    def get_progress(self):
+        p = self.vlc_player.get_media_player()
+        return p.get_time(), p.get_length()

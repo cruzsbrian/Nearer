@@ -36,17 +36,26 @@ class SongEndedMessage(DataClassJsonMixin):
 class StatusUpdateMessage(DataClassJsonMixin):
     status: player.Status
 
+@dataclass
+class TimeUpdateMessage(DataClassJsonMixin):
+    time: int
+    length: int
+
 
 def emit_song_ended():
     msg_json = SongEndedMessage(p.status, p.current_song_idx).to_json()
-    sio.emit("song_ended", msg_json)
+    sio.emit("ended", msg_json)
 
 def emit_status():
     msg_json = StatusUpdateMessage(p.status).to_json()
     sio.emit("status", msg_json)
 
+def emit_progress():
+    msg_json = TimeUpdateMessage(*p.get_progress()).to_json()
+    sio.emit("time", msg_json)
 
-p = player.Player(emit_song_ended)
+
+p = player.Player(emit_song_ended, emit_progress)
 
 # sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='https://blacker.caltech.edu')
 sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='*')
@@ -59,6 +68,10 @@ def connect(sid, environ, auth):
 
     msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx).to_json()
     sio.emit("init", msg_json)
+
+    # If a song is playing or paused, emit progress
+    if p.status != player.Status.STOPPED:
+        emit_progress()
 
 @sio.event
 def disconnect(sid):

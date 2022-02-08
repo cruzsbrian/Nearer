@@ -23,6 +23,11 @@
             <div id="currently-playing">
                 <img id="current-image" />
                 <p id="current-title"></p>
+                <progress max="1" value="0"></progress>
+                <div id="times">
+                    <p id="current-time">0:00</p>
+                    <p id="current-length">0:00</p>
+                </div>
                 <div id="controls">
                     <button id="pause-btn">PAUSE</button>
                     <button id="skip-btn">SKIP</button>
@@ -38,9 +43,7 @@
         </main>
     </body>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             background: black;
@@ -48,33 +51,27 @@
             font-family: 'Roboto', sans-serif;
         }
 
-        header {
-            text-align: center;
-        }
-
+        header { text-align: center; }
         header h1 {
             font-size: 4em;
             font-family: 'Oswald', sans-serif;
             margin-bottom: 0;
         }
-
         #subtitle {
             letter-spacing: 0.15em;
             color: #aaa;
         }
-
-        #username {
-            display: none;
-        }
+        #username { display: none; }
 
         main {
             margin: 0 auto;
             display: flex;
             justify-content: center;
+            padding: 5vh 0;
         }
-        
+
         main > div {
-            margin: 3vw;
+            margin: 0 3vw;
             max-width: 5in;
             flex-grow: 1;
         }
@@ -82,16 +79,38 @@
         #currently-playing {
             text-align: center;
             display: none;
+            align-items: center;
         }
-
-        #current-image {
-            max-width: 100%;
+        #current-title { margin: 5px; }
+        progress {
+            appearance: none;
+            width: 80%;
+            height: 2px;
+            border: none;
+            background: #222;
         }
+        progress::-moz-progress-bar {
+            background: #aaa;
+        }
+        progress::-webkit-progress-bar {
+            background: #222;
+        }
+        progress::-webkit-progress-value {
+            background: #aaa;
+        }
+        #times {
+            width: 80%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            color: #aaa;
+            font-size: small;
+        }
+        #times > p { margin-top: 2px; }
 
         #queue {
             display: flex;
             flex-direction: column;
-            align-items: center;
         }
 
         #submit-form {
@@ -111,10 +130,7 @@
             flex-grow: 1;
             margin-left: 10px;
         }
-
-        ::placeholder {
-            color: #aaa;
-        }
+        ::placeholder { color: #aaa; }
 
         button {
             height: 2em;
@@ -161,46 +177,34 @@
         .song > * { margin: 10px; }
         .song > :first-child { margin-left: 20px }
         .song > :last-child { margin-right: 20px }
-
-        .song img { width: 15%; flex-shrink: 0; }
-
+        .song > img { width: 15%; flex-shrink: 0; }
         .song-info {
             flex-grow: 1;
             min-width: 0;
             overflow: hidden;
         }
         .song-info > p { margin: 2px; }
-
         .song-title {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
         .song-user {
             font-size: 0.75em;
             opacity: 70%;
         }
-
-        .song-length {
-            text-align: right;
-        }
+        .song-length { text-align: right; }
 
         @media screen and (max-width: 10in) {
-            header h1 {
-                font-size: 2.5em;
-            }
+            header h1 { font-size: 2.5em; }
             main {
                 flex-direction: column;
                 align-items: center;
+                padding: 0;
             }
-            main > div {
-                width: 90%;
-            }
-            #current-image {
-                max-height: 15vh;
-            }
-
+            main > div { width: 90%; }
+            #current-image { max-height: 15vh; }
+            #song-list { margin: 0; }
             .song > * { margin: 5px; }
             .song > :first-child { margin-left: 10px }
             .song > :last-child { margin-right: 10px }
@@ -225,31 +229,42 @@
         $("#currently-playing").hide();
         $("#queue").hide();
 
+        function time_str(s) {
+            let hours = Math.floor(s / 3600);
+            let minutes = Math.floor(s / 60) - hours * 60;
+            let seconds = Math.round(s) - hours * 3600 - minutes * 60;
+            if (seconds < 10) { seconds = "0" + seconds; }
+            
+            if (hours > 0) {
+                if (minutes < 10) { minutes = "0" + minutes; }
+                return "" + hours + ":" + minutes + ":" + seconds;
+            } else {
+                return "" + minutes + ":" + seconds;
+            }
+        }
+
         function add_song(song) {
-            var $song = $("<li></li>").addClass("song");
+            let $song = $("<li></li>").addClass("song");
 
-            $song.append("<img src='" + song.thumb_big + "'>");
+            $song.append("<img src='" + song.thumb + "'>");
 
-            var $song_info = $("<div></div>").addClass("song-info");
+            let $song_info = $("<div></div>").addClass("song-info");
             $song_info.append("<p class='song-title'>" + song.title + "</p>");
             $song_info.append("<p class='song-user'>" + song.user + "</p>");
             $song.append($song_info);
 
-            var minutes = Math.floor(song.length / 60);
-            var seconds = song.length % 60;
-            if (seconds < 10) { seconds = "0" + seconds; }
-            $song.append("<p class='song-length'>" + minutes + ":" + seconds + "</p>");
+            $song.append("<p class='song-length'>" + time_str(song.length) + "</p>");
 
             $song_link = $("<a href='" + song.url + "' target='_blank'></a>").append($song);
             $("#song-list").prepend($song_link);
         }
 
         function update_current_song_idx(current_idx) {
-            var songElems = $(".song");
+            let songElems = $(".song");
             songElems.removeClass();
             songElems.addClass("song");
 
-            for (var i = 0; i < songElems.length; i++) {
+            for (let i = 0; i < songElems.length; i++) {
                 if (i < current_idx) {
                     $(songElems[i]).addClass("queued");
                 } else if (i === current_idx) {
@@ -316,7 +331,7 @@
             $("#currently-playing").hide();
             $("#queue").hide();
             $("#connecting").show();
-        })
+        });
 
         sio.on("added", (data) => {
             data = JSON.parse(data);
@@ -328,20 +343,25 @@
             update_status(data.status);
         });
 
-        sio.on("song_ended", (data) => {
+        sio.on("ended", (data) => {
             data = JSON.parse(data);
-            console.log("song ended");
+            console.log("ended");
             console.log(data);
 
             update_current_song_idx(data.current_song_idx);
             update_status(data.status);
 
             // Limit number of played songs shown.
-            var played_songs = $(".song.played");
+            let played_songs = $(".song.played");
             if (played_songs.length > MAX_HIST) {
                 played_songs.last().remove();
             }
-        })
+
+            // Reset progress bar.
+            $("progress").attr("value", 0);
+            $("#current-time").text(time_str(0));
+            $("#current-length").text(time_str(0));
+        });
 
         sio.on("status", (data) => {
             data = JSON.parse(data);
@@ -349,6 +369,17 @@
             console.log(data);
 
             update_status(data.status);
-        })
+        });
+
+        sio.on("time", (data) => {
+            data = JSON.parse(data);
+            console.log("time");
+            console.log(data);
+
+            $("progress").attr("max", data.length);
+            $("progress").attr("value", data.time);
+            $("#current-time").text(time_str(data.time / 1000));
+            $("#current-length").text(time_str(data.length / 1000));
+        });
     </script>
 </html>
