@@ -38,6 +38,7 @@
                     <input placeholder="youtube url" id="url-input" value="">
                     <button form="submit-form" id="submit-btn">+</button>
                 </form>
+                <p id="error"></p>
                 <ul id="song-list"></ul>
             </div>
         </main>
@@ -131,6 +132,18 @@
             margin-left: 10px;
         }
         ::placeholder { color: #aaa; }
+
+        #error {
+            display: none;
+            max-width: calc(100% - 20px);
+            margin: 0 auto;
+            text-align: center;
+            padding: 5px 10px;
+            border-radius: 3px;
+            background-color: #f55;
+            color: black;
+            font-size: smaller;
+        }
 
         button {
             height: 2em;
@@ -380,6 +393,14 @@
             $("progress").attr("value", data.time);
             $("#current-time").text(time_str(data.time / 1000));
             $("#current-length").text(time_str(data.length / 1000));
+
+        sio.on("error", (msg) => {
+            console.log("error");
+            console.log(msg);
+
+            $("#error").text(msg);
+            $("#error").show();
+            $("#error").fadeOut(4000);
         });
     </script>
 </html>

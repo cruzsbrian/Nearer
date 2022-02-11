@@ -64,7 +64,7 @@ app = socketio.WSGIApp(sio)
 
 @sio.event
 def connect(sid, environ, auth):
-    print(f"connected to {sid}")
+    logger.info(f"connected to {sid}")
 
     msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx).to_json()
     sio.emit("init", msg_json)
@@ -75,7 +75,7 @@ def connect(sid, environ, auth):
 
 @sio.event
 def disconnect(sid):
-    print(f"disconnected from {sid}")
+    logger.info(f"disconnected from {sid}")
 
 @sio.event
 def pause(sid, data=None):
@@ -91,8 +91,8 @@ def next(sid, data=None):
 def add(sid, data):
     try:
         p.add_song(data)
-    except ValueError:
-        #TODO emit error message
+    except ValueError as e:
+        sio.emit("error", str(e), to=sid)
         pass
     else:
         msg_json = AddedMessage(p.status, p.all_songs[0], p.current_song_idx).to_json()
