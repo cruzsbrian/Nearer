@@ -14,7 +14,8 @@ PAFY_MAX_TRIES = 10
 logger = logging.getLogger(__name__)
 
 
-pafy.set_api_key('AIzaSyAosU-NtYX-li_SqpcsKfZ4yFoW8SC-fSU')
+with open('youtube_api_key.secret') as f:
+    pafy.set_api_key(f.read().strip())
 
 
 class Status(Enum):
@@ -115,7 +116,14 @@ class Player:
                     self.status = Status.PLAYING
 
                 # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
-                self.all_songs.insert(0, NearerSong('https://youtu.be/' + video.videoid, video.title, video.length, video.bigthumbhd))
+                self.all_songs.insert(0,
+                    NearerSong(
+                        'https://youtu.be/' + video.videoid,
+                        video.title,
+                        video.length,
+                        video.bigthumbhd.replace("http:", "https:")
+                    )
+                )
                 self.current_song_idx += 1
 
                 logger.info(f"added '{video.title}'")
