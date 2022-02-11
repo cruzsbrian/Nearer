@@ -55,7 +55,7 @@ class Player:
         # Note: libvlc is not reentrant, so self.song_ended cannot call a libvlc function directly
         player_events = self.vlc_player.get_media_player().event_manager()
         player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.song_ended)
-        player_events.event_attach(vlc.EventType.MediaPlayerTimeChanged, self.time_changed)
+        player_events.event_attach(vlc.EventType.MediaPlayerPlaying, self.time_changed)
 
     def toggle_pause(self):
         logger.info("toggling pause")

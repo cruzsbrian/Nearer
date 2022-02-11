@@ -1,2 +1,4 @@
 nearer-env/
 __pycache__/
+
+*.secret

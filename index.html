@@ -225,6 +225,7 @@
     </style>
     <script>
         const MAX_HIST = 7;
+        const PROGRESS_STEP = 300;
 
         const subtitles = [
             "DON'T PLAY THE RIDE",
@@ -238,6 +239,10 @@
         ];
 
         $("#subtitle").text(subtitles[Math.floor(Math.random()*subtitles.length)]);
+
+        let player_status = "stopped";
+        let playback_start_time;
+        let playback_start_pos;
 
         $("#currently-playing").hide();
         $("#queue").hide();
@@ -293,7 +298,21 @@
             }
         }
 
+        function incrementProgress() {
+            if (player_status === "playing") {
+                const max = $("progress").attr("max");
+                const time_since_start = Date.now() - playback_start_time;
+                const new_pos = Math.min(playback_start_pos + time_since_start, max);
+                $("progress").attr("value", new_pos);
+                $("#current-time").text(time_str(new_pos / 1000));
+            }
+        }
+
+        setInterval(incrementProgress, PROGRESS_STEP);
+
         function update_status(status) {
+            player_status = status;
+
             if (status === "stopped") {
                 $("#currently-playing").hide();
             } else if (status === "playing") {
@@ -393,6 +412,10 @@
             $("progress").attr("value", data.time);
             $("#current-time").text(time_str(data.time / 1000));
             $("#current-length").text(time_str(data.length / 1000));
+
+            playback_start_pos = data.time;
+            playback_start_time = Date.now();
+        });
 
         sio.on("error", (msg) => {
             console.log("error");
