@@ -20,6 +20,7 @@ with open('youtube_api_key.secret') as f:
 
 class Status(Enum):
     STOPPED = "stopped"
+    BUFFERING = "buffering"
     PLAYING = "playing"
     PAUSED = "paused"
 
@@ -32,7 +33,7 @@ class NearerSong:
 
 
 class Player:
-    def __init__(self, song_end, time_changed):
+    def __init__(self, song_end, status_change):
         """
         song_end: function to call after each song finishes
         """
@@ -40,7 +41,7 @@ class Player:
         self.status = Status.STOPPED
 
         self.song_end_callback = song_end
-        self.time_changed_callback = time_changed
+        self.status_change_callback = status_change
 
         self.all_songs = []
         self.current_song_idx = -1
@@ -55,14 +56,15 @@ class Player:
         # Note: libvlc is not reentrant, so self.song_ended cannot call a libvlc function directly
         player_events = self.vlc_player.get_media_player().event_manager()
         player_events.event_attach(vlc.EventType.MediaPlayerEndReached, self.song_ended)
-        player_events.event_attach(vlc.EventType.MediaPlayerPlaying, self.time_changed)
+        player_events.event_attach(vlc.EventType.MediaPlayerPlaying, self.playing)
+        player_events.event_attach(vlc.EventType.MediaPlayerPaused, self.paused)
 
     def toggle_pause(self):
         logger.info("toggling pause")
         self.vlc_player.pause()
 
-        if self.status == Status.PLAYING: self.status = Status.PAUSED
-        elif self.status == Status.PAUSED: self.status = Status.PLAYING
+        # if self.status == Status.PLAYING: self.status = Status.PAUSED
+        # elif self.status == Status.PAUSED: self.status = Status.PLAYING
 
     def next(self):
         """
@@ -84,6 +86,7 @@ class Player:
                 self.status = Status.STOPPED
             else:
                 self.vlc_player.next()
+                self.status = Status.BUFFERING
 
     def add_song(self, url):
         """
@@ -113,7 +116,7 @@ class Player:
                 if self.queue_exhausted():
                     # Use play_item_at_index() because if the player had stopped calling play() would make it start from the beginning.
                     self.vlc_player.play_item_at_index(len(self.all_songs))
-                    self.status = Status.PLAYING
+                    self.status = Status.BUFFERING
 
                 # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
                 self.all_songs.insert(0,
@@ -150,8 +153,13 @@ class Player:
 
         self.song_end_callback()
 
-    def time_changed(self, event):
-        self.time_changed_callback()
+    def playing(self, event):
+        self.status = Status.PLAYING
+        self.status_change_callback()
+
+    def paused(self, event):
+        self.status = Status.PAUSED
+        self.status_change_callback()
 
     def queue_exhausted(self):
         """

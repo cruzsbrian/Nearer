@@ -23,10 +23,12 @@
             <div id="currently-playing">
                 <img id="current-image" />
                 <p id="current-title"></p>
-                <progress max="1" value="0"></progress>
-                <div id="times">
-                    <p id="current-time">0:00</p>
-                    <p id="current-length">0:00</p>
+                <div id="progress">
+                    <progress max="1" value="0"></progress>
+                    <div id="times">
+                        <p id="current-time">0:00</p>
+                        <p id="current-length">0:00</p>
+                    </div>
                 </div>
                 <div id="controls">
                     <button id="pause-btn">PAUSE</button>
@@ -225,7 +227,7 @@
     </style>
     <script>
         const MAX_HIST = 7;
-        const PROGRESS_STEP = 300;
+        const PROGRESS_STEP = 100;
 
         const subtitles = [
             "DON'T PLAY THE RIDE",
@@ -315,11 +317,17 @@
 
             if (status === "stopped") {
                 $("#currently-playing").hide();
+            } else if (status === "buffering") {
+                $("#currently-playing").show();
+                $("#progress").hide();
+                $("#pause-btn").text("PAUSE");
             } else if (status === "playing") {
                 $("#currently-playing").show();
+                $("#progress").show();
                 $("#pause-btn").text("PAUSE");
             } else if (status === "paused") {
                 $("#currently-playing").show();
+                $("progress").show();
                 $("#pause-btn").text("PLAY");
             }
         }
@@ -340,7 +348,8 @@
             $("#url-input").val("");
         });
 
-        const sio = io("http://localhost:5000");
+        // const sio = io("http://131.215.158.159:5000", { transports: ["polling"] });
+        const sio = io("ws://localhost:5000", { transports: ["websocket"] });
 
         sio.on("init", (data) => {
             data = JSON.parse(data);
@@ -354,6 +363,14 @@
 
             update_current_song_idx(data.current_song_idx);
             update_status(data.status);
+
+            $("progress").attr("max", data.length);
+            $("progress").attr("value", data.time);
+            $("#current-time").text(time_str(data.time / 1000));
+            $("#current-length").text(time_str(data.length / 1000));
+
+            playback_start_pos = data.time;
+            playback_start_time = Date.now();
 
             $("#queue").show();
             $("#connecting").hide();
@@ -401,6 +418,14 @@
             console.log(data);
 
             update_status(data.status);
+
+            $("progress").attr("max", data.length);
+            $("progress").attr("value", data.time);
+            $("#current-time").text(time_str(data.time / 1000));
+            $("#current-length").text(time_str(data.length / 1000));
+
+            playback_start_pos = data.time;
+            playback_start_time = Date.now();
         });
 
         sio.on("time", (data) => {

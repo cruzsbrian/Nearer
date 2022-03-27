@@ -1,4 +1,3 @@
-from locale import currency
 import logging
 from dataclasses import dataclass
 
@@ -20,6 +19,8 @@ class InitMessage(DataClassJsonMixin):
     status: player.Status
     songs: list[player.NearerSong]
     current_song_idx: int
+    time: int
+    length: int
 
 @dataclass
 class AddedMessage(DataClassJsonMixin):
@@ -35,6 +36,8 @@ class SongEndedMessage(DataClassJsonMixin):
 @dataclass
 class StatusUpdateMessage(DataClassJsonMixin):
     status: player.Status
+    time: int
+    length: int
 
 @dataclass
 class TimeUpdateMessage(DataClassJsonMixin):
@@ -47,18 +50,19 @@ def emit_song_ended():
     sio.emit("ended", msg_json)
 
 def emit_status():
-    msg_json = StatusUpdateMessage(p.status).to_json()
+    msg_json = StatusUpdateMessage(p.status, *p.get_progress()).to_json()
     sio.emit("status", msg_json)
 
 def emit_progress():
-    msg_json = TimeUpdateMessage(*p.get_progress()).to_json()
-    sio.emit("time", msg_json)
+    pass
+    # msg_json = TimeUpdateMessage(*p.get_progress()).to_json()
+    # sio.emit("time", msg_json)
 
 
-p = player.Player(emit_song_ended, emit_progress)
+p = player.Player(emit_song_ended, emit_status)
 
 # sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='https://blacker.caltech.edu')
-sio = socketio.Server(logger=logger, async_mode='gevent', cors_allowed_origins='*')
+sio = socketio.Server(logger=logger, cors_allowed_origins='*')
 app = socketio.WSGIApp(sio)
 
 
@@ -66,7 +70,7 @@ app = socketio.WSGIApp(sio)
 def connect(sid, environ, auth):
     logger.info(f"connected to {sid}")
 
-    msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx).to_json()
+    msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx, *p.get_progress()).to_json()
     sio.emit("init", msg_json)
 
     # If a song is playing or paused, emit progress
@@ -80,7 +84,7 @@ def disconnect(sid):
 @sio.event
 def pause(sid, data=None):
     p.toggle_pause()
-    emit_status()
+    # emit_status()
 
 @sio.event
 def next(sid, data=None):
@@ -100,4 +104,4 @@ def add(sid, data):
 
 
 if __name__ == "__main__":
-    pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler).serve_forever()
+    pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler, log=logger).serve_forever()
