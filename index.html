@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300&family=Roboto&display=swap" rel="stylesheet"> 
@@ -318,8 +318,9 @@
                 $("#currently-playing").hide();
             } else if (status === "buffering") {
                 $("#currently-playing").show();
-                $("#progress").hide();
                 $("#pause-btn").text("PAUSE");
+                $("#current-time").text(time_str(0));
+                $("#current-length").text(time_str(0));
             } else if (status === "playing") {
                 $("#currently-playing").show();
                 $("#progress").show();
