@@ -26,6 +26,7 @@ class Status(Enum):
 
 @dataclass
 class NearerSong:
+    user: str
     url: str
     title: str
     length: int
@@ -88,7 +89,7 @@ class Player:
                 self.vlc_player.next()
                 self.status = Status.BUFFERING
 
-    def add_song(self, url):
+    def add_song(self, user, url):
         """
         Get a video from youtube using pafy.
         Add the audio stream url to the VLC MediaList.
@@ -121,6 +122,7 @@ class Player:
                 # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
                 self.all_songs.insert(0,
                     NearerSong(
+                        user,
                         'https://youtu.be/' + video.videoid,
                         video.title,
                         video.length,
