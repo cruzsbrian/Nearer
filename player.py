@@ -64,9 +64,6 @@ class Player:
         logger.info("toggling pause")
         self.vlc_player.pause()
 
-        # if self.status == Status.PLAYING: self.status = Status.PAUSED
-        # elif self.status == Status.PAUSED: self.status = Status.PLAYING
-
     def next(self):
         """
         Skip the current song.

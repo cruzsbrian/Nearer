@@ -55,12 +55,6 @@ def emit_status():
     msg_json = StatusUpdateMessage(p.status, *p.get_progress()).to_json()
     sio.emit("status", msg_json)
 
-def emit_progress():
-    pass
-    # msg_json = TimeUpdateMessage(*p.get_progress()).to_json()
-    # sio.emit("time", msg_json)
-
-
 p = player.Player(emit_song_ended, emit_status)
 
 sio = socketio.Server(logger=logging.getLogger('socketio'), cors_allowed_origins='*', async_mode='threading')
@@ -72,11 +66,7 @@ def connect(sid, environ, auth):
     logger.info(f"connected to {sid}")
 
     msg_json = InitMessage(p.status, p.all_songs, p.current_song_idx, *p.get_progress()).to_json()
-    sio.emit("init", msg_json)
-
-    # If a song is playing or paused, emit progress
-    if p.status != player.Status.STOPPED:
-        emit_progress()
+    sio.emit("init", msg_json, to=sid)
 
 @sio.event
 def disconnect(sid):
@@ -113,6 +103,6 @@ def add(sid, data):
         p.add_song(usernames[sid], data)
     except ValueError as e:
         sio.emit("error", str(e), to=sid)
-
-    msg_json = AddedMessage(p.status, p.all_songs[0], p.current_song_idx).to_json()
-    sio.emit("added", msg_json)
+    else:
+        msg_json = AddedMessage(p.status, p.all_songs[0], p.current_song_idx).to_json()
+        sio.emit("added", msg_json)
