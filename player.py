@@ -51,9 +51,9 @@ class Player:
         self.songs_lock = threading.Lock()
 
         # Create a new VLC MediaListPlayer and MediaList.
-        vlc_instance = vlc.Instance()
-        self.vlc_player = vlc_instance.media_list_player_new()
-        self.vlc_list = vlc_instance.media_list_new()
+        self.vlc_instance = vlc.Instance()
+        self.vlc_player = self.vlc_instance.media_list_player_new()
+        self.vlc_list = self.vlc_instance.media_list_new()
         self.vlc_player.set_media_list(self.vlc_list)
 
         # Attach functions to player events for when song ends, when playing starts, and when paused.
@@ -113,15 +113,15 @@ class Player:
             logger.info(f"response code {r.status_code}")
 
             if r.status_code == 200:
-                self.vlc_list.add_media(best_audio.url)
-
                 with self.songs_lock:
-                    # Before adding to all_songs, check if the queue was exhausted. If it was, start playing this song.
+                    # Before adding, check if the queue was exhausted. If it was, make a new playlist and start with this song.
                     if self.queue_exhausted():
-                        # Use play_item_at_index() because if the player had stopped calling play() would make it start from the beginning.
-                        logger.info(f"player was stopped, ")
-                        self.vlc_player.play_item_at_index(self.vlc_list.count() - 1)
-                        self.status = Status.BUFFERING
+                        logger.info("queue was exhausted, starting new playlist")
+                        self.vlc_list.release()
+                        self.vlc_list = self.vlc_instance.media_list_new()
+                        self.vlc_player.set_media_list(self.vlc_list)
+
+                    self.vlc_list.add_media(best_audio.url)
 
                     # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
                     self.all_songs.insert(0,
@@ -134,6 +134,9 @@ class Player:
                         )
                     )
                     self.current_song_idx += 1
+
+                    self.vlc_player.play()
+                    self.status = Status.BUFFERING
 
                 logger.info(f"added '{video.title}'")
 
