@@ -79,7 +79,7 @@ p = player.Player(emit_song_ended, emit_status)
 
 # Initialize socketio server.
 # Async mode must be 'threading' for vlc callbacks to be able to emit messages.
-sio = socketio.Server(sio_logger, cors_allowed_origins='*', async_mode='threading')
+sio = socketio.Server(logger=sio_logger, cors_allowed_origins='*', async_mode='threading')
 app = socketio.WSGIApp(sio)
 
 
