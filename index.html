@@ -283,6 +283,8 @@
             songElems.removeClass();
             songElems.addClass("song");
 
+            let played_opacity = 0.4;
+
             for (let i = 0; i < songElems.length; i++) {
                 if (i < current_idx) {
                     $(songElems[i]).addClass("queued");
@@ -295,6 +297,8 @@
                     $("#current-title").text(title);
                 } else {
                     $(songElems[i]).addClass("played");
+                    $(songElems[i]).css("opacity", played_opacity);
+                    played_opacity -= 0.05;
                 }
             }
         }
