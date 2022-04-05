@@ -46,6 +46,11 @@ class Player:
         self.song_end_callback = song_end
         self.status_change_callback = status_change
 
+        # all_songs is a list of NearerSong's with the most recently added song at the start.
+        # When each song ends, all_songs is trimmed so that no more than MAX_HIST already played
+        # songs are stored. current_song_idx gives the index of the currently playing song, or -1
+        # if all songs have been played. songs_lock should be acquired when modifying all_songs
+        # or current_song_idx.
         self.all_songs = []
         self.current_song_idx = -1
         self.songs_lock = threading.Lock()
@@ -90,6 +95,9 @@ class Player:
                     self.vlc_player.next()
                     self.status = Status.BUFFERING
 
+            # Limit number of played songs stored
+            self.all_songs = self.all_songs[:self.current_song_idx + MAX_HIST + 1]
+
     def add_song(self, user, url):
         """
         Get a video from youtube using pafy.
@@ -120,8 +128,11 @@ class Player:
                         self.vlc_list.release()
                         self.vlc_list = self.vlc_instance.media_list_new()
                         self.vlc_player.set_media_list(self.vlc_list)
-
-                    self.vlc_list.add_media(best_audio.url)
+                        self.vlc_list.add_media(best_audio.url)
+                        self.status = Status.BUFFERING
+                        self.vlc_player.play()
+                    else:
+                        self.vlc_list.add_media(best_audio.url)
 
                     # Add new song to the beginning of all_songs, and increment current_song_idx to match the current song being pushed by 1
                     self.all_songs.insert(0,
@@ -134,9 +145,6 @@ class Player:
                         )
                     )
                     self.current_song_idx += 1
-
-                    self.vlc_player.play()
-                    self.status = Status.BUFFERING
 
                 logger.info(f"added '{video.title}'")
 
@@ -156,7 +164,10 @@ class Player:
             self.current_song_idx -= 1
 
             if self.queue_exhausted():
+                logger.info("last song finished")
                 self.status = Status.STOPPED
+            else:
+                self.status = Status.BUFFERING
 
             # Limit number of played songs stored
             self.all_songs = self.all_songs[:self.current_song_idx + MAX_HIST + 1]
